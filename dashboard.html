@@ -1,0 +1,25 @@
+<!doctype html><html><head><meta charset="utf-8"><title>NEXGUARD</title><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>body{font:14px system-ui;margin:0;background:#0f1419;color:#e6e6e6}header{padding:12px 20px;background:#161c24;display:flex;justify-content:space-between}
+main{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:12px;padding:12px}section{background:#161c24;border-radius:8px;padding:12px;overflow:auto;max-height:340px}
+h2{margin:0 0 8px;font-size:13px;color:#8aa}td,th{padding:2px 8px;text-align:left;font-size:12px}input,button{padding:6px;margin:3px}.bad{color:#f66}.ok{color:#6c6}</style></head><body>
+<header><b>NEXGUARD</b><span id=who></span></header>
+<div id=login style="padding:20px"><input id=u placeholder=username><input id=p type=password placeholder=password><input id=t placeholder="TOTP code"><button onclick=go()>Sign in</button><span id=err class=bad></span></div>
+<main id=m hidden></main>
+<script>
+let T=sessionStorage.getItem('t');const H=()=>({Authorization:'Bearer '+T});
+async function go(){const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u.value,password:p.value,totp:t.value})});
+const d=await r.json();if(!r.ok){err.textContent=d.error;return}T=d.token;sessionStorage.setItem('t',T);load()}
+function tbl(rows){const t=document.createElement('table');if(!rows.length){t.textContent='No data';return t}
+const ks=Object.keys(rows[0]);const h=t.insertRow();ks.forEach(k=>{const c=document.createElement('th');c.textContent=k;h.appendChild(c)});
+rows.forEach(r=>{const x=t.insertRow();ks.forEach(k=>x.insertCell().textContent=r[k]==null?'':typeof r[k]=='object'?JSON.stringify(r[k]):r[k])});return t}
+function panel(title,node){const s=document.createElement('section'),h=document.createElement('h2');h.textContent=title;s.append(h,node);m.appendChild(s)}
+async function load(){const g=u=>fetch(u,{headers:H()}).then(r=>r.ok?r.json():null);const d=await g('/api/dashboard');
+if(!d){login.hidden=false;return}login.hidden=true;m.hidden=false;m.replaceChildren();
+const [env,integ]=await Promise.all([g('/api/environments'),g('/api/integrations')]);
+const a=document.createElement('div');a.textContent='Audit chain: '+(d.audit_integrity.ok?'intact':'BROKEN at '+d.audit_integrity.broken_at);a.className=d.audit_integrity.ok?'ok':'bad';
+panel('Overview',(()=>{const x=document.createElement('div');x.textContent='Open incidents: '+d.open_incidents+' | Pending approvals: '+d.pending_approvals+' | By severity: '+JSON.stringify(d.incidents_by_severity);x.append(document.createElement('br'),a);return x})());
+panel('Critical incidents',tbl(d.critical));panel('Protected environments',tbl(env.map(e=>({name:e.name,monitoring:e.monitoring,heartbeat:e.last_heartbeat,latest:e.latest_event&&e.latest_event.type}))));
+panel('Event timeline (24h)',tbl(d.timeline));panel('AI investigations',tbl(d.ai));panel('Response activity',tbl(d.recent_responses));
+panel('Notifications',tbl(d.notifications));panel('Integrations',tbl(integ));panel('Administrative access',tbl(d.admin_sessions))}
+if(T)load();
+</script></body></html>
