@@ -1,6 +1,6 @@
 # NEXGUARD (MVP vertical slice)
 
-Security monitoring, deterministic detection, incident response with human approval, AI-assisted investigation (untrusted output), and a tamper-evident audit chain, for FLOURAXIOM, AXIS and FLRXCORE.
+Security monitoring, deterministic detection, incident response with human approval, AI-assisted investigation(untrusted output).
 Stack: Python 3.12, Flask, SQLite (WAL), stdlib crypto (scrypt, TOTP). Chosen because only Flask was installed and the network was disabled; production should use PostgreSQL + gunicorn + a queue.
 
 ## Run
